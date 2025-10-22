@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="sv"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEO AUTONOMOUS // SYNAPTIC SYSTEM</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<header style="padding:15px 40px;border-bottom:2px solid;border-image:linear-gradient(90deg,transparent,#00ffd0,#0077ff,transparent) 1;">
+<h1 style="font-size:1.2em;margin:0">NEO AUTONOMOUS // SYNAPTIC SYSTEM</h1></header>
+<main style="padding:40px;display:flex;gap:40px">
+<section style="flex:2;min-width:450px">
+  <div class="card">
+    <h2>INTENT SPHERE // Kausal Planering</h2>
+    <label style="display:block;margin:8px 0;color:var(--text-secondary)">Deklarera Avsikt</label>
+    <textarea id="goalInput" rows="3" style="width:100%;background:#0a0a1a;border:1px solid #333;color:#e0e0e0;padding:10px;border-radius:8px"></textarea>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <button class="button-primary" onclick="initiateMission()">Simulera & Förutsägelse</button>
+      <button class="button-primary" onclick="startExecution()">🚀 KÖR NU</button>
+    </div>
+  </div>
+  <div id="simulationPanel" class="card" style="margin-top:20px;display:none">
+    <h3>PILOTENS KALKYL</h3>
+    <div style="display:flex;gap:24px">
+      <div>Tokens: <b id="simCost">--</b></div>
+      <div>Tid: <b id="simTime">--</b></div>
+      <div>Risk: <b id="simRisk">--</b></div>
+    </div>
+    <div id="causalPrediction" style="margin-top:10px;padding:10px;border-left:3px solid var(--color-warning);background:rgba(255,204,0,.05)">
+      <div><b>Kausalt Hot:</b> <span id="predType"></span></div>
+      <div id="predConsequence" style="color:var(--text-secondary)"></div>
+      <div id="predMitigation" style="font-size:.9em"></div>
+    </div>
+  </div>
+</section>
+<section style="flex:3">
+  <div class="card">
+    <h2>MEDVETEN KASKAD // Logg</h2>
+    <div id="logStream" class="log-stream"></div>
+  </div>
+  <div id="valuePanel" class="card" style="margin-top:20px;display:none">
+    <h3>HANGAR DELIVERY // Artefakt</h3>
+    <p id="finalArtefact" style="font-size:1.1em;color:#00ffd0"></p>
+  </div>
+</section>
+</main>
+<div style="position:fixed;left:0;right:0;bottom:0;background:#151526;border-top:1px solid #2a2e49;padding:10px 14px;display:flex;gap:8px;">
+  <input id="chatInput" placeholder="Skriv till agenten…" 
+         style="flex:1;background:#0a0a1a;border:1px solid #333;color:#e0e0e0;border-radius:10px;padding:10px 12px;">
+  <button class="button-primary" onclick="sendChat()">Skicka</button>
+</div>
+<script>
+const API_BASE="http://127.0.0.1:8123";
+let currentPlan=null, runID=null;
+function log(msg,type='info'){const s=document.getElementById('logStream');const p=document.createElement('p');p.className='log-message '+type;p.textContent='['+new Date().toLocaleTimeString()+'] '+msg;s.appendChild(p);s.scrollTop=s.scrollHeight;}
+async function initiateMission(){
+  const goal=document.getElementById('goalInput').value||'Demo mission';
+  log('Initierar kausal planering…','info');
+  try{
+    const r=await fetch(API_BASE+'/api/plan_v3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal,mission_code:'free_form_mission',params:{}})});
+    const plan=await r.json(); currentPlan=plan;
+    document.getElementById('simCost').textContent=plan.simulate.est_cost_tokens.toLocaleString();
+    document.getElementById('simTime').textContent=plan.simulate.est_time_s.toFixed(1)+'s';
+    document.getElementById('simRisk').textContent=plan.simulate.risk.toUpperCase();
+    document.getElementById('predType').textContent=plan.simulate.causal_prediction.risk_type;
+    document.getElementById('predConsequence').textContent=plan.simulate.causal_prediction.consequence;
+    document.getElementById('predMitigation').textContent='Åtgärd: '+plan.simulate.causal_prediction.mitigation;
+    document.getElementById('simulationPanel').style.display='block';
+    log('Verdikariat: '+plan.decision.toUpperCase(),'lesson');
+  }catch(e){log('FEL i Planering: '+e.message,'risk')}
+}
+async function startExecution(){
+  if(!currentPlan){log('Ingen plan att exekvera. Kör simulering först.','risk');return;}
+  if(currentPlan.decision!=='go'){log('Verdikariatet är '+currentPlan.decision.toUpperCase()+'.','risk');return;}
+  runID='RUN_'+Date.now(); log('Startar exekvering '+runID,'success');
+  try{
+    const r=await fetch(API_BASE+'/api/exec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({run_id:runID,plan_steps:currentPlan.plan_steps})});
+    const j=await r.json();
+    if(j.status==='succeeded'){document.getElementById('finalArtefact').textContent=j.artefacts[0]||'OK'; document.getElementById('valuePanel').style.display='block'; log('Mission klart. Artefakt manifesterad.','success');}
+    else{log('Körfel.','risk')}
+  }catch(e){log('FEL i Exec: '+e.message,'risk')}
+}
+async function sendChat(){
+  const el=document.getElementById('chatInput'); const text=el.value.trim(); if(!text) return; el.value=''; log('[DU] '+text,'info');
+  setTimeout(()=>log('[NEO] Förslag: Kör simulering för målet.','lesson'),400);
+}
+</script>
+</body></html>

@@ -1,0 +1,15 @@
+
+<!doctype html><meta charset="utf-8"><title>Neo Controller</title>
+<div style="max-width:720px;margin:40px auto;font:16px system-ui;color:#ddd;background:#0a0a15;padding:20px;border-radius:12px">
+  <h2>Promptstyrning</h2>
+  <textarea id="cmd" rows="4" style="width:100%;padding:10px;background:#0f1020;color:#ddd;border:1px solid #334; border-radius:8px"></textarea><br><br>
+  <button id="go" style="padding:10px 16px;border-radius:8px;background:#4f46e5;color:#fff;border:none">Kör</button>
+  <pre id="out" style="background:#0f1020;color:#cbd5e1;padding:12px;white-space:pre-wrap;margin-top:16px;border-radius:8px"></pre>
+</div>
+<script>
+const API="http://127.0.0.1:8123";
+go.onclick=async()=>{
+  const r=await fetch(API+"/api/command",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:cmd.value,auto_run:true})});
+  const j=await r.json(); out.textContent=JSON.stringify(j,null,2);
+};
+</script>

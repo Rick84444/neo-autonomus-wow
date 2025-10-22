@@ -1,0 +1,8 @@
+:root{--bg-primary:#0e0e17;--bg-secondary:#151526;--accent:#00ffd0;--text-primary:#e0e0e0;--text-secondary:#a1a1b0;--color-risk:#ff5f5f;--color-success:#6fffb0;--color-info:#0077ff;--color-warning:#ffcc00}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@400;600&display=swap');
+body{font-family:'Inter',sans-serif;background:var(--bg-primary);color:var(--text-primary);margin:0}
+h1,h2,h3{font-family:'Orbitron',sans-serif;letter-spacing:.08em}
+.card{background:var(--bg-secondary);border:1px solid rgba(255,255,255,.05);border-radius:16px;padding:20px;box-shadow:0 0 25px rgba(0,255,208,.05)}
+.button-primary{background:linear-gradient(90deg,#00ffd0,#0077ff);color:#0e0e17;border:none;border-radius:10px;padding:10px 22px;font-weight:600;cursor:pointer}
+.log-stream{max-height:300px;overflow:auto;background:#0a0a1a;border-radius:8px;padding:10px;font-family:monospace;font-size:.9em}
+.log-message.info{color:var(--color-info)} .log-message.risk{color:var(--color-risk)} .log-message.success{color:var(--color-success)} .log-message.lesson{color:var(--color-warning)}
