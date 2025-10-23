@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual env
+venv/
+env/
+
+# Editor dirs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Test and build artifacts
+.pytest_cache/
+artifacts/
+*.sqlite3
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+
+# Distribution / packaging
+dist/
+build/
+__pypackages__/
