@@ -1,4 +1,4 @@
-uvicorn server:app --reloaduvicorn server:app --reloadimport os, json, time
+import os, json, time
 BASE = os.path.join(os.path.dirname(__file__), "..", "artifacts", "value")
 os.makedirs(BASE, exist_ok=True)
 RUNS = os.path.join(BASE, "runs.json")

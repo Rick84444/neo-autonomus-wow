@@ -61,10 +61,10 @@ async def api_command(req: CommandReq):
         await broadcast({"status":"success","message":f"Steg {i+1} klart."})
     wall = round(time.time()-t0,2)
     outs = [{"i":i,"skill":s.get("skill"),"action":s.get("action"),"ok":True} for i,s in enumerate(plan.get("plan_steps",[]))]
-    record_run(routed["params"'' \
-    ''
-uvicorn server:app --reload
-]["run_id"], routed["goal"], routed["mission_code"], routed["params"], plan, outs, results, wall)
+    # db.value.record_run signature: record_run(run_id: str, est_time_s: float, wall_time_s: float, step_outcomes: list[dict])
+    est_time = plan.get("simulate", {}).get("est_time_s", None)
+    run_id = routed.get("params", {}).get("run_id", "local")
+    record_run(run_id, est_time, wall, outs)
     await broadcast({"status":"done","message":"Klar.", "results": results, "wall": wall})
     if routed["params"].get("optimize", False):
         await broadcast({"status":"thinking","message":"Optimerar mål…"})
