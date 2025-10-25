@@ -12,5 +12,14 @@ def register(skill: Skill):
 
 def get(name: str) -> Skill:
     s = _registry.get(name)
-    if not s: raise KeyError(f"Skill not found: {name}")
+    if not s:
+        # Try to import the skill module dynamically (allow lazy registration)
+        try:
+            import importlib
+            importlib.import_module(f"skills.{name}")
+        except Exception:
+            pass
+        s = _registry.get(name)
+    if not s:
+        raise KeyError(f"Skill not found: {name}")
     return s

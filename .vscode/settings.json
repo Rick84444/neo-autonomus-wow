@@ -7,5 +7,17 @@
         "*test.py"
     ],
     "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true
+    "python.testing.unittestEnabled": true,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": true,
+    "debug.javascript.autoAttachFilter": "smart",
+    "javascript.referencesCodeLens.showOnAllFunctions": true,
+    "javascript.suggest.completeFunctionCalls": true,
+    "mediaPreview.video.autoPlay": true,
+    "mediaPreview.video.loop": true,
+    "merge-conflict.autoNavigateNextConflict.enabled": true,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": true,
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": true,
+    "typescript.tsserver.web.projectWideIntellisense.suppressSemanticErrors": true,
+    "npm.enableRunFromFolder": true,
+    "npm.exclude": ""
 }

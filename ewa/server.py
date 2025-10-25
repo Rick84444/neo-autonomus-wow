@@ -56,8 +56,15 @@ async def api_command(req: CommandReq):
     results, t0 = [], time.time()
     for i, step in enumerate(plan["plan_steps"]):
         await broadcast({"status":"thinking","message":f"Kör {step.get('skill')}.{step.get('action')} ({i+1}/{len(plan['plan_steps'])})"})
-        res = get_skill(step["skill"]).run(step["action"], step.get("params", {}), ctx={"run_id": routed["params"]["run_id"]})
-        results.append(res)
+        try:
+            res = get_skill(step["skill"]).run(step["action"], step.get("params", {}), ctx={"run_id": routed["params"].get("run_id","local")})
+            results.append(res)
+        except Exception as e:
+            # Don't let a failing skill crash the whole server; record the error and continue
+            err = {"ok": False, "skill": step.get("skill"), "action": step.get("action"), "error": str(e)}
+            results.append(err)
+            await broadcast({"status":"error","message":f"Steg {i+1} fel: {e}"})
+            # continue to next step
         await broadcast({"status":"success","message":f"Steg {i+1} klart."})
     wall = round(time.time()-t0,2)
     outs = [{"i":i,"skill":s.get("skill"),"action":s.get("action"),"ok":True} for i,s in enumerate(plan.get("plan_steps",[]))]

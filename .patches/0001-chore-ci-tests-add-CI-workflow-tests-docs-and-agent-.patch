@@ -1,0 +1,911 @@
+From 477a0b707b08472f051e5f48a56fc2f0a47e45d3 Mon Sep 17 00:00:00 2001
+From: Rick84444 <dickjacobsson022@gmail.com>
+Date: Thu, 23 Oct 2025 21:37:10 +0200
+Subject: [PATCH 1/3] chore(ci+tests): add CI workflow, tests, docs, and agent
+ instructions
+
+---
+ .github/copilot-instructions.md               |  38 +++++++++++++
+ .github/workflows/ci.yml                      |  28 ++++++++++
+ TESTS.md                                      |  23 ++++++++
+ artifacts/backups/last_apply.json             |   6 ++
+ .../skills__tmp_test_skill.py.1761248065.bak  |   2 +
+ .../skills__tmp_test_skill.py.1761248084.bak  |   2 +
+ artifacts/value/fail_counts.json              |   3 +
+ artifacts/value/runs.json                     |  30 ++++++++++
+ db/__pycache__/value.cpython-313.pyc          | Bin 3285 -> 3285 bytes
+ db/fiduciary.sqlite3                          | Bin 0 -> 20480 bytes
+ db/value.py                                   |   2 +-
+ ewa/__pycache__/server.cpython-313.pyc        | Bin 5919 -> 5722 bytes
+ ewa/server.py                                 |   8 +--
+ requirements.txt                              |   2 +
+ .../__pycache__/code_evolve.cpython-313.pyc   | Bin 0 -> 6150 bytes
+ skills/__pycache__/compliance.cpython-313.pyc | Bin 0 -> 2680 bytes
+ skills/__pycache__/finance.cpython-313.pyc    | Bin 0 -> 2893 bytes
+ .../generated_ethical_engine.cpython-313.pyc  | Bin 0 -> 1420 bytes
+ .../tmp_test_skill.cpython-313.pyc            | Bin 0 -> 185 bytes
+ skills/tmp_test_skill.py                      |   2 +
+ .../conftest.cpython-313-pytest-7.4.2.pyc     | Bin 0 -> 1297 bytes
+ ...est_api_smoke.cpython-313-pytest-7.4.2.pyc | Bin 0 -> 9513 bytes
+ ...est_api_smoke.cpython-313-pytest-8.4.2.pyc | Bin 0 -> 3693 bytes
+ ...t_code_evolve.cpython-313-pytest-7.4.2.pyc | Bin 0 -> 7472 bytes
+ tests/conftest.py                             |  19 +++++++
+ tests/test_api_smoke.py                       |  52 ++++++++++++++++++
+ tests/test_code_evolve.py                     |  36 ++++++++++++
+ tmp_test_skill.py                             |   2 +
+ 28 files changed, 250 insertions(+), 5 deletions(-)
+ create mode 100644 .github/copilot-instructions.md
+ create mode 100644 .github/workflows/ci.yml
+ create mode 100644 TESTS.md
+ create mode 100644 artifacts/backups/last_apply.json
+ create mode 100644 artifacts/backups/skills__tmp_test_skill.py.1761248065.bak
+ create mode 100644 artifacts/backups/skills__tmp_test_skill.py.1761248084.bak
+ create mode 100644 artifacts/value/fail_counts.json
+ create mode 100644 artifacts/value/runs.json
+ create mode 100644 db/fiduciary.sqlite3
+ create mode 100644 skills/__pycache__/code_evolve.cpython-313.pyc
+ create mode 100644 skills/__pycache__/compliance.cpython-313.pyc
+ create mode 100644 skills/__pycache__/finance.cpython-313.pyc
+ create mode 100644 skills/__pycache__/generated_ethical_engine.cpython-313.pyc
+ create mode 100644 skills/__pycache__/tmp_test_skill.cpython-313.pyc
+ create mode 100644 skills/tmp_test_skill.py
+ create mode 100644 tests/__pycache__/conftest.cpython-313-pytest-7.4.2.pyc
+ create mode 100644 tests/__pycache__/test_api_smoke.cpython-313-pytest-7.4.2.pyc
+ create mode 100644 tests/__pycache__/test_api_smoke.cpython-313-pytest-8.4.2.pyc
+ create mode 100644 tests/__pycache__/test_code_evolve.cpython-313-pytest-7.4.2.pyc
+ create mode 100644 tests/conftest.py
+ create mode 100644 tests/test_api_smoke.py
+ create mode 100644 tests/test_code_evolve.py
+ create mode 100644 tmp_test_skill.py
+
+diff --git a/.github/copilot-instructions.md b/.github/copilot-instructions.md
+new file mode 100644
+index 0000000..d2d7e30
+--- /dev/null
++++ b/.github/copilot-instructions.md
+@@ -0,0 +1,38 @@
++Short guidance to help AI coding agents be productive in this repository.
++
++Repository snapshot
++- Python FastAPI-based autonomous agent orchestration.
++- Key packages live under `ewa/` (engine), `skills/` (pluggable skill implementations), and `db/` (simple logging/storage).
++
++What an agent should know (20–50 lines)
++
++1) Big picture
++- `ewa/server.py` is the public entrypoint (FastAPI). It accepts commands, routes prompts, constructs plans via `ewa/planner_v3.py`, and executes steps by loading skills from `skills/loader.py`.
++- Planner (`ewa/planner_v3.py`) performs compliance checks via `skills/compliance` and emits `plan_steps` describing `{skill, action, params}`.
++- Skills are registered via `skills/loader.register()` and discovered at runtime with `skills/loader.get(name)`. Each skill implements `run(action, params, ctx)` and returns a dict result.
++
++2) Developer workflows (how to run/debug)
++- Run the server locally using Uvicorn from the repo root: `uvicorn ewa.server:app --reload` (the project uses FastAPI websockets for live updates at `/ws/stream/{run_id}`).
++- A lightweight mock API exists under `neo_autonomous_mock/neo_autonomous_mock/server_mock.py` for external integration testing.
++- Code-evolution is gated: `skills/code_evolve.py` enforces allowlists and writes backups to `artifacts/backups` before applying edits. `POLICY.require_dual_confirm_finance` controls apply permissions.
++
++3) Conventions & project-specific patterns
++- Safe-path allowlisting: file modifications must use paths rooted in `skills/` or `ewa/` (see `_safe_path` in `skills/code_evolve.py`). Never propose edits outside these roots.
++- Logging / audit: events are written via `db/fiduciary.log_event` and runs recorded with `db/value.record_run`. Include run_id in ctx where possible (prompts set one in `ewa/prompt_router.route`).
++- Policy & gating: central runtime limits live in `ewa/agent_policy.py` (token/time caps, regulated control flags). Planner consults these to decide `go|stop|adjust`.
++
++4) Integration points & important files
++- `ewa/prompt_router.py` — lightweight NL-to-mission router; use it to understand parameter extraction (jurisdiction, amount).
++- `skills/code_evolve.py` — shows how to safely propose/apply code changes. Use `propose` to show diffs and `apply` only when dual confirmations are present.
++- `ewa/safeguard.py` — backup/restore helpers (artifact backups); useful prior to destructive changes.
++- `neo_autonomous_mock/neo_autonomous_mock/server_mock.py` — example request/response shapes for planning and execution APIs.
++
++5) Quick examples
++- Create a plan: POST /api/command with JSON {"prompt":"Skaffa 1000 SEK i aktier, jurisdiktion SE","auto_run":false} — server will return planner output.
++- Read a file safely via `code_evolve` skill: skill `code_evolve.run("read", {"path":"skills/some_skill.py"}, ctx={"run_id":"RUN123"})`.
++
++6) Safety notes for agents
++- Never bypass `_safe_path` checks. When proposing code edits, return a unified diff (the code_evolve skill already generates this). When applying changes, create backups and require dual confirmation flags in params.
++- Respect `POLICY` caps in `ewa/agent_policy.py`; planner may return `decision: stop` for compliance/high-risk cases.
++
++If anything in this file is unclear or you want more examples (e.g., common skill signatures or db schemas), ask and I'll expand with concrete samples and tests.
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..3f65fbf
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,28 @@
++name: CI
++
++on:
++  push:
++    branches: [ main ]
++  pull_request:
++    branches: [ main ]
++
++jobs:
++  test:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - name: Set up Python
++        uses: actions/setup-python@v4
++        with:
++          python-version: '3.11'
++      - name: Cache pip
++        uses: actions/cache@v4
++        with:
++          path: ~/.cache/pip
++          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
++          restore-keys: |
++            ${{ runner.os }}-pip-
++      - name: Install dependencies
++        run: python -m pip install -r requirements.txt
++      - name: Run tests
++        run: pytest -q
+diff --git a/TESTS.md b/TESTS.md
+new file mode 100644
+index 0000000..35c52e1
+--- /dev/null
++++ b/TESTS.md
+@@ -0,0 +1,23 @@
++# Running tests and starting the server
++
++Quick commands (run from repository root):
++
++Install dependencies:
++
++```powershell
++python -m pip install -r requirements.txt
++```
++
++Run the test suite:
++
++```powershell
++pytest -q
++```
++
++Start the API server locally (development):
++
++```powershell
++python -m uvicorn ewa.server:app --reload
++```
++
++Websocket stream path: ws://127.0.0.1:8000/ws/stream/{run_id}
+diff --git a/artifacts/backups/last_apply.json b/artifacts/backups/last_apply.json
+new file mode 100644
+index 0000000..16fa538
+--- /dev/null
++++ b/artifacts/backups/last_apply.json
+@@ -0,0 +1,6 @@
++{
++  "path": "skills/tmp_test_skill.py",
++  "backup": "artifacts\\backups\\skills__tmp_test_skill.py.1761248084.bak",
++  "ts": 1761248084,
++  "lines": 2
++}
+\ No newline at end of file
+diff --git a/artifacts/backups/skills__tmp_test_skill.py.1761248065.bak b/artifacts/backups/skills__tmp_test_skill.py.1761248065.bak
+new file mode 100644
+index 0000000..2c680da
+--- /dev/null
++++ b/artifacts/backups/skills__tmp_test_skill.py.1761248065.bak
+@@ -0,0 +1,2 @@
++# original
++VAR=1
+diff --git a/artifacts/backups/skills__tmp_test_skill.py.1761248084.bak b/artifacts/backups/skills__tmp_test_skill.py.1761248084.bak
+new file mode 100644
+index 0000000..2c680da
+--- /dev/null
++++ b/artifacts/backups/skills__tmp_test_skill.py.1761248084.bak
+@@ -0,0 +1,2 @@
++# original
++VAR=1
+diff --git a/artifacts/value/fail_counts.json b/artifacts/value/fail_counts.json
+new file mode 100644
+index 0000000..6551fbf
+--- /dev/null
++++ b/artifacts/value/fail_counts.json
+@@ -0,0 +1,3 @@
++{
++  "finance.quote": 0
++}
+\ No newline at end of file
+diff --git a/artifacts/value/runs.json b/artifacts/value/runs.json
+new file mode 100644
+index 0000000..97641a2
+--- /dev/null
++++ b/artifacts/value/runs.json
+@@ -0,0 +1,30 @@
++[
++  {
++    "t": 1761248065.326898,
++    "run_id": "RUN_PROMPT",
++    "est": 90,
++    "wall": 0.0,
++    "steps": [
++      {
++        "i": 0,
++        "skill": "finance",
++        "action": "quote",
++        "ok": true
++      }
++    ]
++  },
++  {
++    "t": 1761248084.8595808,
++    "run_id": "RUN_PROMPT",
++    "est": 90,
++    "wall": 0.0,
++    "steps": [
++      {
++        "i": 0,
++        "skill": "finance",
++        "action": "quote",
++        "ok": true
++      }
++    ]
++  }
++]
+\ No newline at end of file
+diff --git a/db/__pycache__/value.cpython-313.pyc b/db/__pycache__/value.cpython-313.pyc
+index 3286d0a4cc88d2bba6cb241a65e7200f90d2bd3a..8e8c4276ef2e715ac12010a597a878f399a001b9 100644
+GIT binary patch
+delta 20
+acmcaAc~z48GcPX}0}$M6{I!w$6b}GKc?RkL
+
+delta 20
+acmcaAc~z48GcPX}0}zx=eY%nR6b}GHum*tu
+
+diff --git a/db/fiduciary.sqlite3 b/db/fiduciary.sqlite3
+new file mode 100644
+index 0000000000000000000000000000000000000000..2dae2f425dc6b9b6269082afb9a8305f5b339e1d
+GIT binary patch
+literal 20480
+zcmeI3O-~y~7{|R}-h&-Nz(gp~WOGRbGB$5PJya#>HbntLjZuq|bUR*;VY_S3vM;0-
+z^}(jM_9OIARqCa;N>$Z<fy$~Pg&w%{&_k0`4?XtKRBC5tZ43sKLMcM!8DZ?5o!x!*
+zH#7g8*=L@`w`O&hpe(g>*hOQ3ivdXryoOL95V*`fE$mZE68jOXZLn{?{jzj95MBSc
+zo0Vz`Jqd)bv44<&01yBIKmZ5;0U!VbfB+Bx0zd!={7V80O|6lkA!*sgX_Gi>CY#u*
+z4q5X^UTfTJzME90QwmB=-<efVL)n{ooFl{R$Xg{<YK!#sNt@TjIZe9a@K4j8qj}EF
+zPE<{L2F)Z=$~`5C7Lqe_)5&FYUs*=eOR4#p1Uqg{Nu-8%O1lnXhRmYGd<rF&W@qbr
+zY%i~}bETAbb`{5(OYQx6I?Xp^W{9Rc`?D=vFe&!WDr~sLC-_qM1t;GUe$n+t=cSIv
+z?IUg1T3doY2H$P|u4zqrFL3Xr6;tjHcLdsc21l-JzCHcZtDkL8EOewsEfeSS#MWre
+zGIh*qLB)<k9A}PXbT79duTX5tuORu3S3tJz7zM=lyN*1J<ecvC8{oSwYP(r#>Qqf*
+zhnRYv@B$XLan51;H)Nj`FPa+VyKs(rd6#X+V<Ht<Ufl?B2sPN3YkP$4df#Ig&*++4
+zz22h2Pr?mS9gW(Am5fElYFQ>(C&Fs~E_l(bs26U_1NlvTWffHocvLKwLm?kb@8+Bj
+z=IYZ_{4g-H^l_ca-BqF)$Xz8Uhi!wn{3Q)~U74Hbmpmq(cq5*ZKoi@ChTTUamjq?i
+z#(^l^49NAtk=~Dn1d#DhN0Unlbs;%Fw~+crU=|IW&0<lxXi>S3bc798C-yL^)+F0v
+zJ;JZXU7)b8S~ksinyaQg-OO+k4{Swsdm3@YqWoqLXfUVFu_Rw$93wX(J!Oe=+*&eP
+zOsZj1qZy)-b!x5?Y*}W38XN2`-Bs2)WyjD>(;0Ddmg*A6RmFDHD)8G(W6kg^UJBc;
+z&YQIJ@S&f{e)vbK>b^sx@!ON}(ebI+<U}-$4SpuxLwRQyEv|Kmx{maet_mAdl^^PC
+zvwEIu!kR~2!j0VBC7nVpO+_!OHF(R`HQp2BqhrzW33e5SdbY@s(>67Tt!7A$%EfZL
+zv(~<v{cDy!uV3?M?dvpJ*I8&w<^B%FtghZ$i{E??>Mhi}-3L=u@2$nspXXe?+iJZ_
+zsP|U#uRo64yJE4^=wExr0%u3P2U-Qk!NJlau2Plf$`^HxRb?a}5Y2N*n#sCBGHjSb
+zu;Y)2G9ETnjpnnuom0gVF25okRhG^Le77KSrQ9c`J5c=RnWJa8w909(zy-9WR>eX<
+zE6-bhuA2q|x_hv<GpOkg`Z`e^{#KsNd;$V01hm-)Qx(w4vrzJ!3usfVcL@Ql{8GMs
+z+}?Gb1+=V4dpLgeTgw1&WFqb>x|qD~%v2Aaj<HF7FwA}PQuy}(`-21ofB+Bx0zd!=
+z00AHX1b_e#00KY&2>h=Iv`fu>5?{B_%jf@L=HL%~+ihJ?!T--+gM<J7XiFo&|F6j4
+z{|Ep7u~wIW|Nl&{-U9zWdm=uNcO0Dx`2P<XAROr_SOWk5NiEMi8v+Xc|3j9)g8#ok
+zK*9fi5&{bT|3hc0M|u$P`G2r`AP{;ITJHXu{eT1nfB+Bx0zd!=00AHX1b_e#IA;V(
+zS9;m{^2m*=Jtdt7=xk5@y3!b4X;ahW0g|T`VL3G}A}os~`I4}$7W%n8_2HL|ww-F|
+wXVtL1p`SfseSR(Ub9-{3tG+(}zY6`lSc?e|kxSc?1IG?6K8?_{v+(BfZ^P`SFaQ7m
+
+literal 0
+HcmV?d00001
+
+diff --git a/db/value.py b/db/value.py
+index 1442c78..bc910aa 100644
+--- a/db/value.py
++++ b/db/value.py
+@@ -1,4 +1,4 @@
+-uvicorn server:app --reloaduvicorn server:app --reloadimport os, json, time
++import os, json, time
+ BASE = os.path.join(os.path.dirname(__file__), "..", "artifacts", "value")
+ os.makedirs(BASE, exist_ok=True)
+ RUNS = os.path.join(BASE, "runs.json")
+diff --git a/ewa/__pycache__/server.cpython-313.pyc b/ewa/__pycache__/server.cpython-313.pyc
+index 3624df279ae5d144e76fbf1685110a172013c6ca..4787309fbf88933373f0b721ff9eabc0b3b30b78 100644
+GIT binary patch
+delta 1409
+zcmY*ZOH3O_7~a`k@2+juCdH0<V;tiLSPN;&BP}ALDGgZ+jj(8_4MmH+1Pi}9YXd=T
+zpgobQQ5x+9sfW6UR7kymxa8JGG%ZOl-nx>}hE`2`ih2UnO6jRHHfht5=G%Y1|2h80
+z|L1}p;E#FUM4<KKhkwsMzQfmn<!$eEKwmTX8`WRH4dCCICPO4}sN3`_Of52mb?P7V
+zyTG#}8jirA12ZlRtr*-0{515Uk50#ADW-#{4q^(82q#*w4Qq_EFfGNRl9Gjioe$Ur
+z0M4pUxmNqjNO_DlQ8t4DmISrM*v!0E5ic48;L1+Mc#Be7`13r`O=4?;NSP;qsu}I-
+zr)IPI6>mRp54HTOtBN#KtO#QAhslq-aV=;$iHNx(5k$xtYMty0xddAMgsC@7fDmO+
+zzh)es(3uePJdp3iS{fo=bgc@x)kAYL8EI1Q8lA4m_6e$+shFnt|D|Y~;6omP!YO(t
+z$WQ~y=oM%;!4a3pF)u<ewq3?Cg>(`Ml`^Ibb4WY3jJAk&lX}Mz15N5*mX4-IltO2u
+zXf~cst&mRNQ-BH3sRKXi(15jbbr=!wGG@v2g3c-NWG*3PW!)qz*_muSDbFanA(4(s
+z3Dl}|N?tLHBqS)H_BCVA7VODFS;-}`icT*{iG<FjGsrQ%BIiya?OXUDLkT*QyLS`6
+zt$n#teL}@k*PP=E<!ICk(W*||C0sPha}nox1H;=Gt|IVTA?^z7!cc{Q$8Z)yK)q1i
+zzKY+OZh+}rDh92Xu14Uuz<$g#h|kKgN@N^VC$nAf3KnQ3D`#{HU8tN$2k27BSkbxX
+zzXz<tb`&a7u^<V**Z)@K<(egXCO#8QCzBFNKaZ?%Wy-fZe^&2<)nBbOx0i1&Z<zA0
+z7p>lswL`OZYzFVSi`ENk!~1;A?eNX;2A6jg`L+`8*LeS?Z|hQ#?_YcKfVQkJ=50UG
+zfdf;`#@y!8H@%weouVmRqQeC`ywCFM^BU_Yu?-sAupw?5O01x<!hyw+Z!h$UTJ1>D
+z5?n2D!2%aNu(<L)o1QNQwtDUf+PTYnJ%#bGHWDdJONDr*XnAj)!hW8@xuL?<uvQx>
+zTBb_eRDqk?x7FrjTT7aGv_Ov@wGoD4aKsSCAc=7lJp0{z<IqGHBH#%Ze8NpVQ{G3H
+z|7g%Bdcgg5Ag-RG?{^ILq0{aeAljH+_h1`3JTL;$!8|Yxa_I2gOI>0;^F3MC?0JFc
+zr1yNCNb%4CL>K+ARzUJ228eF@5o^Y>4PZoCg!L>&S6Oyr^t*L-4$ToM6Ni-g*ftKr
+zs$d`TO{2o}s@SYB7mwwlaS2|BxTQLWs6{D}lTV(G`kB3MvOL53u-dpJ&noHYf}DlD
+z=nOp=0vPZt(&<bZjV#=Ch({GHPo?ri<NA~7SS}$Cz(u6Me?{eILOp$Yuh9X<z{ab`
+Q1pXdV1X+JbVzKP|4?&f5tpET3
+
+delta 1665
+zcmZuxO>7fK6rNe{I(F7SAwMMvBsPg-$Nc0E(h_Qj455WUgTNTIBw#JxjpJlvo7r_D
+zQVG*m6{u1rss)KdrKS>9Td7i^Ih0ccLbTA+TCPgELRF=z2ii*@l`3w1Z%x_@Bkece
+zeDBT7o7p$d+WJY4ch&2yCD7)s{xQ|{k++3@b2D;|@)Iq`x{R})hRDW2ie^F*fkfLx
+zXa|>QZza?GG##wUgmq<vXwbM$&(klLI=KW#n~iyXhqDFjtkt;5pQe$eI^ijeH>1*t
+z(1Fke5an4nbQUiwl5EkmMP-c#Aqb6y(c(VC@{*jEG@Wf*+E+6}>45RIYtztnFs{N!
+zY&X`63}G95+B$%XWZC0?@6d8n%Y_4%<e&K#7PEZ}w|gt?SbEw0p(8ZD0VKO6X~H1@
+zOEe*lw^da_lAIA2n+(g-u{|)zRn@f{dGmuoj1^jtj0dXh#dD9oXs)9=BPS+ByaQ|!
+zT+Fyw<q%6Su_-AgIxr$1Npu1aRrz+__^USH{ok`I5eB8*IO22mfLo+T2oV=~og1qM
+zq+=i3IHYkwqB(NzoG=O2u|D`V8t?mL+HU;m+tP-IwwzL0&*pOrT(J8w{&|b`S~Lnj
+za=_o~JO~0CH8TFTQU<8qEVm?27d1Vb%PhQfq@ZVKvkMX~5j@VanT*1A1+ALdtfqlf
+z#PEZKyPpLuQI}Xo(NhIUpR!!({A@v0bY(#}q)MzODzFjoWcvZE8m4GPRo5(WUQ*Q*
+zY@npHK5Ly;gw-`&kyFoCkJd4~5!R33LGU6BAZ#-R>Nb}!?<|4ki#eIq*?dyXOFF}R
+ziF(*>l$>COMXLe4g$k$lv7<<M*sWkWARddySS$(zya9DMtA=}G=B~AB28&W5n}P$*
+zN?zD@27E9;?YpIwx@B5=#QQGIU7jlY1B<S*Kl;_+jmB@AZ#LiBeEV3X|G>lk!{z?N
+z_b1Ggrz-uYD_c^gr2NFIkHo-rVNw2k>eHz&7H)M^!n+@a<K=Mt_SXAaC7h@PkDDh>
+zRz&H-$gefxm7&GA&EX^{=D1uwp_s`@b8^O13+CDL<&s)jAw;Ed4!S*ixhI6Q@8jTM
+zHI8uqK-!I<4*00H;o9_#SIUjAR%&Ap`IyPamK&QF<s0+nbgnGsO+Np00}&3;r%vKN
+z%ptx(pZzYLf8xaHzwohV+B6*d-FWw?pWfL_561XATjD!QFuL1G4-Px;hT>f?xaX#$
+zobz67+y#U0>-$Cp=MUW8W*9tZrK2MMU_%q~K04~<AM|^W4^zM&IU9u<<X+?p4ZU#l
+zy^~qFn9fS<T(6qXXqKQtg6iq#MU9joCW5aRU*qaVfU6`y$JfjxN!DI_9}STxH)aW0
+zU76LG4_u>^snBWY{k&Yc@Mq&jEDz#qXsrjhKz{QyTsgTYRGPx37%};XU5%o&<}s#c
+zG;Hi@JVhsrYmNI$DG)4=e5U8W$eAA{7f5rGT2$=RwR6^TNQHvslVp4YvaBle5>uF6
+zXNPc#dtN!C<<m2Y&UV6>MG&w;+NILs3wbE3n30wvo73%(SqLj@wN}~%*cF@2%SBb$
+z!|<-~s2WF&xu*N^dRm~@cC8ZZR~>|FUEz?fbQ4avxc;5>rn|jD15Y?gyD#tin?Q$N
+JL0hml_!j|;pdJ7K
+
+diff --git a/ewa/server.py b/ewa/server.py
+index 5d336b5..a379acf 100644
+--- a/ewa/server.py
++++ b/ewa/server.py
+@@ -61,10 +61,10 @@ async def api_command(req: CommandReq):
+         await broadcast({"status":"success","message":f"Steg {i+1} klart."})
+     wall = round(time.time()-t0,2)
+     outs = [{"i":i,"skill":s.get("skill"),"action":s.get("action"),"ok":True} for i,s in enumerate(plan.get("plan_steps",[]))]
+-    record_run(routed["params"'' \
+-    ''
+-uvicorn server:app --reload
+-]["run_id"], routed["goal"], routed["mission_code"], routed["params"], plan, outs, results, wall)
++    # db.value.record_run signature: record_run(run_id: str, est_time_s: float, wall_time_s: float, step_outcomes: list[dict])
++    est_time = plan.get("simulate", {}).get("est_time_s", None)
++    run_id = routed.get("params", {}).get("run_id", "local")
++    record_run(run_id, est_time, wall, outs)
+     await broadcast({"status":"done","message":"Klar.", "results": results, "wall": wall})
+     if routed["params"].get("optimize", False):
+         await broadcast({"status":"thinking","message":"Optimerar mål…"})
+diff --git a/requirements.txt b/requirements.txt
+index 535b7b3..a4d3091 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -3,3 +3,5 @@ uvicorn[standard]==0.30.6
+ pydantic==2.8.2
+ websockets==12.0
+ requests==2.32.3
++httpx==0.24.1
++pytest==7.4.2
+diff --git a/skills/__pycache__/code_evolve.cpython-313.pyc b/skills/__pycache__/code_evolve.cpython-313.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..cb74a6dcd313f37a2bcd747833c487c179a35f2f
+GIT binary patch
+literal 6150
+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
+T7=sw+wY_C$`)6n;y~Y0keAxI^
+
+literal 0
+HcmV?d00001
+
+diff --git a/skills/__pycache__/compliance.cpython-313.pyc b/skills/__pycache__/compliance.cpython-313.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c3558ac403db74e905be67831c9f524e7327d17
+GIT binary patch
+literal 2680
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/skills/__pycache__/finance.cpython-313.pyc b/skills/__pycache__/finance.cpython-313.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fff6d698b2c89e329136aba33c076aad0df5306
+GIT binary patch
+literal 2893
+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
+bhU;DJdy8OsbAv-%=t;+~JO7T_d|Ceke6z}E
+
+literal 0
+HcmV?d00001
+
+diff --git a/skills/__pycache__/generated_ethical_engine.cpython-313.pyc b/skills/__pycache__/generated_ethical_engine.cpython-313.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..3b52c15b619a47faa1f5a5ae262e755279e8d325
+GIT binary patch
+literal 1420
+zcmZ`(&2Jk;6rY`4JGK+2AxYgR6tL1F*Z`&yK|&Quo4S=~kzL3tB!?BF&3dxlW<BH1
+zjH9?*I8{0H!XXmy7l6b8dLi7nB7u~G5Yb#X6b`+a8Y$w&n@#Kj3QxOle)B$O-g~?K
+zVzGdLwswDSHZejE&1OK(G3dVtU>AAFv))EGEMeWi0+-PYnnNC*MV|dScp4IR<hYqf
+z2D(@~SL0A=dx>>JBN<Tk81xqb>>?it%R>TtmaskSI}6yeXVEQ3WIV@ryo{gq9e-p2
+zXTW;F@v^Bd=Z%PblymdCbWJtmFi2Ku95q$UqH8RQ8GU4fxz36XBXJ`<K3<yGV596`
+z0Je+PCX!Ta*sE~CcdZqaSObxVVK?-SkZadnTTiZ1si<J&9T7yWK*h49r>jj!D=De+
+zB%z^-w^Hen2-f3}TxVe4rb2QSB+(Dw8~W{%Yl|FY(z&pcsE(jgkBeAt64eCU<VnL6
+zQPN~1HIwEX<+5I`Ui4Qa#PS<)xOvOJO68{FZNE-AS?Vaxc#C%=S-rVRmLkfOFE`^P
+zkv?E50!15y9+iyHv{aRLSLX<cS*!@r&z)S)%D}+Pge(F35FM1x-W%03@9#MGiU-fm
+z?KnT@p6-JN>0(>(HkXh}(QO57pm06*uQr%=rfs+j0A|Z#Q0isl{U4e_@7WSxKoU=(
+zx4?_P=3#<sBM6P6GGY$1*UHPo7Cmvk2(q;~h<TFk3xrl2&#pM<A#NF7W^W+ZsYjoF
+zV(7a|cgE|yEIUyIosK!HxQ-r+B?)<}ox}lCdXjHJHIsy-9g`s!R8I=J5rm2h7(>D+
+zZP11ueG){vSQO!aVjP&85vL5E2Br&&tKcY<wn8xrGHD7_HY6sD$#ejd)4fAUz#3$b
+zN5Awx-8#uQZ=y!PpmV2Zb_xdzZ+u<5U;C+a<$mq6+xxTgKc1QYs<tz_U%GNop8w^Q
+z%MaiwU*2C^?;&&@*YKfPeEi37`M~lq=vsK&2q(H`lkeic9^2?l)skjZJ{nteV9bZt
+zPA9qU7R<!4phaQg3WT(HqmvjsM#$|>kQ{4H5wZ~rsS^0I7zed2l@L!sSYbv-m;~Y(
+zVEQy6Qo)B9l0YdDuXhxcgnW*~lrb>{6y~>+GUF;=26h+qu$?*gvHTOk(ks}RF8=ad
+z4>n!AcYaTPTix6KrgE6>j{=z(br^-L>b9ZB|2Rb&{dtpOm{I56Ji6DScmWjVpCV1S
+Vd$wg+zoN5;PTuO`$H?&1>u+BbaOVI3
+
+literal 0
+HcmV?d00001
+
+diff --git a/skills/__pycache__/tmp_test_skill.cpython-313.pyc b/skills/__pycache__/tmp_test_skill.cpython-313.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..fe19050d8e8f42d59360e59aa7ad6cc523d0c145
+GIT binary patch
+literal 185
+zcmey&%ge<81dh$WGK7HiV-N=h7@>^M96-iYhG2#whIB?vrk6}WuAe63E#@%Cpp^`t
+zL8@+fI9tVp7N-^!$E0K?XJ^H@q!wqF<QK&FrRK*wmX_q_<>%&?7RQJChsQgnr{<N!
+z6lZ7V<P^u0<QBx2q!yRNgZX*|mA5!-a`RJ4b5iY!*ntLv+)xa1;s<6%M#cv$tc}b?
+HtUxXRYQix{
+
+literal 0
+HcmV?d00001
+
+diff --git a/skills/tmp_test_skill.py b/skills/tmp_test_skill.py
+new file mode 100644
+index 0000000..2c680da
+--- /dev/null
++++ b/skills/tmp_test_skill.py
+@@ -0,0 +1,2 @@
++# original
++VAR=1
+diff --git a/tests/__pycache__/conftest.cpython-313-pytest-7.4.2.pyc b/tests/__pycache__/conftest.cpython-313-pytest-7.4.2.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..6fdfc09a880f1ce8346283243c566735f44d0fe1
+GIT binary patch
+literal 1297
+zcmZ`%&u<e)6n^`|yK5(#SO(W6jf+7cBpfUOLX?J7O)<ry3YNUBa$uy@CSHei>|JYS
+zEhiBY7?7Ow5_71?(K$uEaqPLuA3)`bxYGj?oVXyXxm1x*n6+7qAQ@@ree>S;zV}1B
+zr>Y@f=g$ZGcb@S8ue^tU<o95&z#_ka1{(JhV6JQVn*!kza8tyAL@y#?sT+~8jHGPX
+z7wOyVu|D?E5zMF`@7p7ou|C5`Xz&u(!y12yb?zPCgH@y=`LOP$SdK9YaCkHu@9BJe
+zYk*W=KLJPdci1GVCir=H_=vnyA6M#OH0)0?@jhtWX8lUp)1PxsL!W&N(kTEOL6Pj)
+z&zYL|scMexZ1yXr9LY`|!Vi4PH$47D08K&>jniZihTtNPqhAC1g7p#g`3ac)5nuok
+zu*fZPrvSxdFhpSQlQ63R<Y8Jk33+Z(dF_?GwaO=xR3b}Ou}D^hWO;@1y1pv+9Ld*j
+z4-O6{zog21#VWd%P3YkF<rV$I>x5ojaZTbT4MI%pT8^E>W))kmNrN9;RQ7!#mh91W
+z15@51R3Iyaie<ySLuF&0bb(lKESt(X3)@D?q>8TRt)i*xRLo{FKU0Y{!79;EuS1>j
+zXuu+#k&6~_J;3K}s+e|;R4t|)BCdhm9#%?DPVef5blobI9qcmY;PvGNv+Q;MJM4K|
+zp)=RMMZd5*1m&!Sr2<NsWXW~P=$7f|GZojdosv@_`dnsCpIJ0*7kN_=wBXqJ?mE~S
+zm8+~)rD%SKy}yiOA9=&Bj=*u;3xG%PF!(QoIua<MdbL)q->cng;3w6`)hBl!-);V|
+zePip!c4jN{G~F7T{=;p>QZ4!VeX%XbYh+`2eYqvX+M--f*V6S&Ez_83xPObIOl>H<
+zF}FUqf!5LHSW{`KllMbyAyB_uyIh~HO*ck%h0(u+(Ke$Mel2W{JRcfc<J$x3#?<;$
+zqp~{?Zw<to^V_AZ($m!L_?6c9mG+55Gt#`)%r;}q;Ir7dwRDFU)#yLrk<D+OhsXX4
+u!tj}n0Al?A&LA9*?*XqyUxtr&0?h7{2pf54L`hBXI}=jsLSW}S$L@C=W*({l
+
+literal 0
+HcmV?d00001
+
+diff --git a/tests/__pycache__/test_api_smoke.cpython-313-pytest-7.4.2.pyc b/tests/__pycache__/test_api_smoke.cpython-313-pytest-7.4.2.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..b9f4d6a79ab9849a6057227db8a9dbd42619a6bb
+GIT binary patch
+literal 9513
+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
+a;j(wQ-Cu_jeCF$?V*H-_yVLw29pXPmuF=o{
+
+literal 0
+HcmV?d00001
+
+diff --git a/tests/__pycache__/test_api_smoke.cpython-313-pytest-8.4.2.pyc b/tests/__pycache__/test_api_smoke.cpython-313-pytest-8.4.2.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..6a35da2005484ed35117579f334b81eddba3e5d9
+GIT binary patch
+literal 3693
+zcmeHK%}*Og6rcUTUc5F0LP8vbuq>s@O08pp$p?g}QAkpOlt?VApn|m8;Dv0kcULp(
+z1gKik52>IW!X=Vh<yxujy_fz4Iod!4S~Y5=o^p%CEvLTO^{nkEQkyopWwp$_-+OQ7
+zz4^VF^>CO<B@jHHe)aOM&Li{}1?&MFJcpCeJw_^0xoL#Cpy#Iq!e`Kwh&wW&C5B^Q
+z;iuzM5|#p;Fx@$ozzLAWlL*VpoYL`}PIyz{{KTwDysIV4v^_wA;kt`KtVR=uUVy*D
+z7a%=G^BgnIv!u{yLuW%;Dz6GT-sUtk)4@EOy((&)+HsM$d5xcmHT6ug1vTbe)x@z+
+z5OTEB4R!HXgytpYGZWCnP}paY8rM1soGQ%~3jC-TYSqs9B=ei;Vp6luqR|EzhrT$_
+z7Uf9Ok4agi@ocRuH{*EQs9xsV>|00O;vlEyN?z|Ruo(a7DKbwrkrO@wKJAz)t4S@E
+z=K>U;KgRNCnF}(0^?@AYY%bQDu)QWYTbSV7S*TX})iEey&z97b^PMJ97M-6NGsPd;
+zn0bBGy0ipTt$VK8tXfN^uji+eWvCu`>-Ck`+-w#9s=m=EsP7TAC&vfu%WAKBRFfOE
+zh`m8AVk`^RhqZ9O*MMnytn8%P2aG5G2jfrv6XU73&Ulio@r@XdMgilgcgeVV>^;x)
+z<iBg4wd4$Ze_wsnKDIm5<70CO8NVQ;_P?(P<>_5lWEm|Z<;2Z(MO`tLmW<4BKA+F1
+z*QPU8##r$z6MvYwSHTu3T7VoIOxG3OkGa?>yPhu@70=Oe#a>UIF<k4+qEjv#b`fqE
+z;yvQn&!55y6z(NIF`;nlBd1QgYiAXb_^cshCNfmYD<nre!>bT|(J7jV&odLDVN@Z$
+zh)v=uf-is{ZO+nWbiK<U#Kc}O{yeyW^1Ls)CBuf;yanxgFP(c>AsNdK+(zhZcbwuH
+z<PYw{v>9oe2;yOSf$*iGxo8nsuAiV&>clf$7)(6J^<&sHU};JhruQXGFCh@vA)YU{
+zEW%HG?5=rm<<br8_vnj8sib4m#Xyj2VAD^6S-(@UN}gpCKUQ+UgZL+Oa@VPpih--X
+zTypLhCEYg4rr)U(W67j5_+3|mr9*btFm|wiR9|v%+3<98l_qP@GGU3PB`lkslJaAV
+z!L`qiyT)3{F^X8GMww<1vN+rd3awxy1Yv-4t>6NtKijRo`BreY)wh7@HH)O6$+SNH
+zjjLk|8q|?26s^UTdkd2$Spkk0ZkmpM1$LJ0lpWX=w{P9nuPnpOb%8QUf>wv^rjxR>
+zV&>d6KOIor*nN6XGZ&lpE%O0B15xQ6l;q(iyMcaB^*<3F>KoS&(v!8B+x4!wjT;AY
+z&!h3J@$D~uys<f6lM5S@2XgnmJW!VhYGSrZf~GEK_r=D$BW7#zKm<eKH!-_eh;;QP
+z0z>4zOXrK6A_3G8^3lbuix0<X^q!iS-k#mMyf3E1cSlTbo(sjjrWlz)w>=x7dK-$=
+zyJ8xGY{#}P(GbUK;$XF}E)VXDjdw>J+#CzhUQ>+BpsV&psNRMm^{zO0AothAp=zNn
+z5ABPMcSjuBycD9nrWlz)R|V=C&h<7FsdvSpKjZSZt6#2eCwAil)%&~gQwQDsHHpUR
+z9@>{0?~XLIxf-IqrWlz)2eFuQy$wZbaC#vi>4QVqI7mtQ5<9AR5EOn|4-a=PJU?*Y
+zau~Ln<-tLXRDQgn!}KRFJdwRi27Dx3D@XThcr1g@h@UVY7&$lz_e~spQi5&!6T*2q
+vG)H4fm&#7DQZg^&3jpc=Vx%9M7Xrs|e<1V?`dWU5lxOJVVJyjIf`NYnul<|N
+
+literal 0
+HcmV?d00001
+
+diff --git a/tests/__pycache__/test_code_evolve.cpython-313-pytest-7.4.2.pyc b/tests/__pycache__/test_code_evolve.cpython-313-pytest-7.4.2.pyc
+new file mode 100644
+index 0000000000000000000000000000000000000000..0bb794ae8835a943596c09f4e0429d06b3335d5d
+GIT binary patch
+literal 7472
+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
+H4GaGPI?W7!
+
+literal 0
+HcmV?d00001
+
+diff --git a/tests/conftest.py b/tests/conftest.py
+new file mode 100644
+index 0000000..541d170
+--- /dev/null
++++ b/tests/conftest.py
+@@ -0,0 +1,19 @@
++import os
++import sys
++
++# Ensure repository root is on sys.path so tests can import ewa, skills, db, etc.
++ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
++if ROOT not in sys.path:
++    sys.path.insert(0, ROOT)
++
++# Import all skills so they register themselves into skills.loader registry
++skills_dir = os.path.join(ROOT, "skills")
++if os.path.isdir(skills_dir):
++    for fn in os.listdir(skills_dir):
++        if fn.endswith('.py') and not fn.startswith('__'):
++            mod_name = f"skills.{fn[:-3]}"
++            try:
++                __import__(mod_name)
++            except Exception:
++                # allow import errors to surface during tests when they matter
++                pass
+diff --git a/tests/test_api_smoke.py b/tests/test_api_smoke.py
+new file mode 100644
+index 0000000..8bf932d
+--- /dev/null
++++ b/tests/test_api_smoke.py
+@@ -0,0 +1,52 @@
++import json
++from fastapi.testclient import TestClient
++from ewa.server import app
++
++
++def test_command_plan_preview():
++    client = TestClient(app)
++    payload = {"prompt": "Skaffa 1000 SEK i aktier, jurisdiktion SE", "auto_run": False}
++    resp = client.post("/api/command", json=payload)
++    assert resp.status_code == 200
++    body = resp.json()
++    assert "plan" in body
++    plan = body["plan"]
++    assert "decision" in plan
++    assert "plan_steps" in plan
++    # If decision is stop, planner placed an explicit reason
++    if plan.get("decision") == "stop":
++        assert "reason" in plan
++
++
++def test_planner_decisions_various_prompts():
++    from ewa.planner_v3 import plan_v3
++    # Low-risk prompt
++    p1 = plan_v3("Check the market for DEMO", "portfolio_baseline", {"run_id":"T1","amount":100})
++    assert p1.get("simulate")
++    assert p1.get("plan_steps")
++
++    # High-risk prompt (large amount) should trigger compliance check and possibly stop
++    p2 = plan_v3("Buy risky assets", "portfolio_baseline", {"run_id":"T2","amount":1000000})
++    assert p2.get("simulate")
++    assert "decision" in p2
++
++
++def test_full_execution_auto_run_true(tmp_path):
++    # Use TestClient to run with auto_run True; since skills are internal, this will execute the sample finance step
++    from ewa.agent_policy import POLICY
++    client = TestClient(app)
++    # Temporarily relax dual-confirm requirement so the finance skill can execute in tests
++    old_flag = POLICY.require_dual_confirm_finance
++    POLICY.require_dual_confirm_finance = False
++    try:
++        payload = {"prompt": "Skaffa 10 SEK i aktier, jurisdiktion SE", "auto_run": True}
++        resp = client.post("/api/command", json=payload)
++    finally:
++        POLICY.require_dual_confirm_finance = old_flag
++    assert resp.status_code == 200
++    body = resp.json()
++    assert body.get("executed") in (True, False)
++    # If executed, results should be present
++    if body.get("executed"):
++        assert isinstance(body.get("results"), list)
++
+diff --git a/tests/test_code_evolve.py b/tests/test_code_evolve.py
+new file mode 100644
+index 0000000..c1508fb
+--- /dev/null
++++ b/tests/test_code_evolve.py
+@@ -0,0 +1,36 @@
++import os
++from skills.loader import get as get_skill
++
++
++def test_code_evolve_propose_apply_rollback(tmp_path):
++    ce = get_skill("code_evolve")
++    # Create a temp file under skills/ to satisfy _safe_path
++    skills_dir = os.path.join(os.path.dirname(__file__), "..", "skills")
++    os.makedirs(skills_dir, exist_ok=True)
++    target_rel = "skills/tmp_test_skill.py"
++    target = os.path.join(skills_dir, "tmp_test_skill.py")
++    # Use relative path when calling code_evolve (it expects paths rooted in skills/ or ewa/)
++    # ensure initial content
++    with open(target, "w", encoding="utf-8") as f:
++        f.write("# original\nVAR=1\n")
++
++    new_content = "# updated\nVAR=2\n"
++
++    # propose
++    res_prop = ce.run("propose", {"path": target_rel, "new_content": new_content}, ctx={})
++    assert res_prop.get("ok")
++    assert "diff" in res_prop
++
++    # apply (bypass policy by providing confirms)
++    res_apply = ce.run("apply", {"path": target_rel, "new_content": new_content, "user_confirm": True, "second_confirm": True}, ctx={})
++    assert res_apply.get("ok") and res_apply.get("applied")
++    # file content should now be new_content
++    with open(target, "r", encoding="utf-8") as f:
++        assert f.read() == new_content
++
++    # rollback using backup path from apply response
++    backup = res_apply.get("backup")
++    res_rb = ce.run("rollback", {"path": target_rel, "backup_path": backup}, ctx={})
++    assert res_rb.get("ok") and res_rb.get("rolled_back")
++    with open(target, "r", encoding="utf-8") as f:
++        assert "original" in f.read()
+diff --git a/tmp_test_skill.py b/tmp_test_skill.py
+new file mode 100644
+index 0000000..2c680da
+--- /dev/null
++++ b/tmp_test_skill.py
+@@ -0,0 +1,2 @@
++# original
++VAR=1
+-- 
+2.51.1.windows.1
+

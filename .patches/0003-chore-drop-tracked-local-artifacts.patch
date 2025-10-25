@@ -1,0 +1,145 @@
+From 36775a1b8cfd66d5a87189b72c237dc5cd3614bf Mon Sep 17 00:00:00 2001
+From: Rick84444 <dickjacobsson022@gmail.com>
+Date: Thu, 23 Oct 2025 21:38:00 +0200
+Subject: [PATCH 3/3] chore: drop tracked local artifacts
+
+---
+ artifacts/backups/last_apply.json             |   6 ----
+ .../skills__tmp_test_skill.py.1761248065.bak  |   2 --
+ .../skills__tmp_test_skill.py.1761248084.bak  |   2 --
+ artifacts/value/fail_counts.json              |   3 --
+ artifacts/value/runs.json                     |  30 ------------------
+ db/fiduciary.sqlite3                          | Bin 20480 -> 0 bytes
+ tmp_test_skill.py                             |   2 --
+ 7 files changed, 45 deletions(-)
+ delete mode 100644 artifacts/backups/last_apply.json
+ delete mode 100644 artifacts/backups/skills__tmp_test_skill.py.1761248065.bak
+ delete mode 100644 artifacts/backups/skills__tmp_test_skill.py.1761248084.bak
+ delete mode 100644 artifacts/value/fail_counts.json
+ delete mode 100644 artifacts/value/runs.json
+ delete mode 100644 db/fiduciary.sqlite3
+ delete mode 100644 tmp_test_skill.py
+
+diff --git a/artifacts/backups/last_apply.json b/artifacts/backups/last_apply.json
+deleted file mode 100644
+index 16fa538..0000000
+--- a/artifacts/backups/last_apply.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "path": "skills/tmp_test_skill.py",
+-  "backup": "artifacts\\backups\\skills__tmp_test_skill.py.1761248084.bak",
+-  "ts": 1761248084,
+-  "lines": 2
+-}
+\ No newline at end of file
+diff --git a/artifacts/backups/skills__tmp_test_skill.py.1761248065.bak b/artifacts/backups/skills__tmp_test_skill.py.1761248065.bak
+deleted file mode 100644
+index 2c680da..0000000
+--- a/artifacts/backups/skills__tmp_test_skill.py.1761248065.bak
++++ /dev/null
+@@ -1,2 +0,0 @@
+-# original
+-VAR=1
+diff --git a/artifacts/backups/skills__tmp_test_skill.py.1761248084.bak b/artifacts/backups/skills__tmp_test_skill.py.1761248084.bak
+deleted file mode 100644
+index 2c680da..0000000
+--- a/artifacts/backups/skills__tmp_test_skill.py.1761248084.bak
++++ /dev/null
+@@ -1,2 +0,0 @@
+-# original
+-VAR=1
+diff --git a/artifacts/value/fail_counts.json b/artifacts/value/fail_counts.json
+deleted file mode 100644
+index 6551fbf..0000000
+--- a/artifacts/value/fail_counts.json
++++ /dev/null
+@@ -1,3 +0,0 @@
+-{
+-  "finance.quote": 0
+-}
+\ No newline at end of file
+diff --git a/artifacts/value/runs.json b/artifacts/value/runs.json
+deleted file mode 100644
+index 97641a2..0000000
+--- a/artifacts/value/runs.json
++++ /dev/null
+@@ -1,30 +0,0 @@
+-[
+-  {
+-    "t": 1761248065.326898,
+-    "run_id": "RUN_PROMPT",
+-    "est": 90,
+-    "wall": 0.0,
+-    "steps": [
+-      {
+-        "i": 0,
+-        "skill": "finance",
+-        "action": "quote",
+-        "ok": true
+-      }
+-    ]
+-  },
+-  {
+-    "t": 1761248084.8595808,
+-    "run_id": "RUN_PROMPT",
+-    "est": 90,
+-    "wall": 0.0,
+-    "steps": [
+-      {
+-        "i": 0,
+-        "skill": "finance",
+-        "action": "quote",
+-        "ok": true
+-      }
+-    ]
+-  }
+-]
+\ No newline at end of file
+diff --git a/db/fiduciary.sqlite3 b/db/fiduciary.sqlite3
+deleted file mode 100644
+index 2dae2f425dc6b9b6269082afb9a8305f5b339e1d..0000000000000000000000000000000000000000
+GIT binary patch
+literal 0
+HcmV?d00001
+
+literal 20480
+zcmeI3O-~y~7{|R}-h&-Nz(gp~WOGRbGB$5PJya#>HbntLjZuq|bUR*;VY_S3vM;0-
+z^}(jM_9OIARqCa;N>$Z<fy$~Pg&w%{&_k0`4?XtKRBC5tZ43sKLMcM!8DZ?5o!x!*
+zH#7g8*=L@`w`O&hpe(g>*hOQ3ivdXryoOL95V*`fE$mZE68jOXZLn{?{jzj95MBSc
+zo0Vz`Jqd)bv44<&01yBIKmZ5;0U!VbfB+Bx0zd!={7V80O|6lkA!*sgX_Gi>CY#u*
+z4q5X^UTfTJzME90QwmB=-<efVL)n{ooFl{R$Xg{<YK!#sNt@TjIZe9a@K4j8qj}EF
+zPE<{L2F)Z=$~`5C7Lqe_)5&FYUs*=eOR4#p1Uqg{Nu-8%O1lnXhRmYGd<rF&W@qbr
+zY%i~}bETAbb`{5(OYQx6I?Xp^W{9Rc`?D=vFe&!WDr~sLC-_qM1t;GUe$n+t=cSIv
+z?IUg1T3doY2H$P|u4zqrFL3Xr6;tjHcLdsc21l-JzCHcZtDkL8EOewsEfeSS#MWre
+zGIh*qLB)<k9A}PXbT79duTX5tuORu3S3tJz7zM=lyN*1J<ecvC8{oSwYP(r#>Qqf*
+zhnRYv@B$XLan51;H)Nj`FPa+VyKs(rd6#X+V<Ht<Ufl?B2sPN3YkP$4df#Ig&*++4
+zz22h2Pr?mS9gW(Am5fElYFQ>(C&Fs~E_l(bs26U_1NlvTWffHocvLKwLm?kb@8+Bj
+z=IYZ_{4g-H^l_ca-BqF)$Xz8Uhi!wn{3Q)~U74Hbmpmq(cq5*ZKoi@ChTTUamjq?i
+z#(^l^49NAtk=~Dn1d#DhN0Unlbs;%Fw~+crU=|IW&0<lxXi>S3bc798C-yL^)+F0v
+zJ;JZXU7)b8S~ksinyaQg-OO+k4{Swsdm3@YqWoqLXfUVFu_Rw$93wX(J!Oe=+*&eP
+zOsZj1qZy)-b!x5?Y*}W38XN2`-Bs2)WyjD>(;0Ddmg*A6RmFDHD)8G(W6kg^UJBc;
+z&YQIJ@S&f{e)vbK>b^sx@!ON}(ebI+<U}-$4SpuxLwRQyEv|Kmx{maet_mAdl^^PC
+zvwEIu!kR~2!j0VBC7nVpO+_!OHF(R`HQp2BqhrzW33e5SdbY@s(>67Tt!7A$%EfZL
+zv(~<v{cDy!uV3?M?dvpJ*I8&w<^B%FtghZ$i{E??>Mhi}-3L=u@2$nspXXe?+iJZ_
+zsP|U#uRo64yJE4^=wExr0%u3P2U-Qk!NJlau2Plf$`^HxRb?a}5Y2N*n#sCBGHjSb
+zu;Y)2G9ETnjpnnuom0gVF25okRhG^Le77KSrQ9c`J5c=RnWJa8w909(zy-9WR>eX<
+zE6-bhuA2q|x_hv<GpOkg`Z`e^{#KsNd;$V01hm-)Qx(w4vrzJ!3usfVcL@Ql{8GMs
+z+}?Gb1+=V4dpLgeTgw1&WFqb>x|qD~%v2Aaj<HF7FwA}PQuy}(`-21ofB+Bx0zd!=
+z00AHX1b_e#00KY&2>h=Iv`fu>5?{B_%jf@L=HL%~+ihJ?!T--+gM<J7XiFo&|F6j4
+z{|Ep7u~wIW|Nl&{-U9zWdm=uNcO0Dx`2P<XAROr_SOWk5NiEMi8v+Xc|3j9)g8#ok
+zK*9fi5&{bT|3hc0M|u$P`G2r`AP{;ITJHXu{eT1nfB+Bx0zd!=00AHX1b_e#IA;V(
+zS9;m{^2m*=Jtdt7=xk5@y3!b4X;ahW0g|T`VL3G}A}os~`I4}$7W%n8_2HL|ww-F|
+wXVtL1p`SfseSR(Ub9-{3tG+(}zY6`lSc?e|kxSc?1IG?6K8?_{v+(BfZ^P`SFaQ7m
+
+diff --git a/tmp_test_skill.py b/tmp_test_skill.py
+deleted file mode 100644
+index 2c680da..0000000
+--- a/tmp_test_skill.py
++++ /dev/null
+@@ -1,2 +0,0 @@
+-# original
+-VAR=1
+-- 
+2.51.1.windows.1
+

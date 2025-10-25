@@ -1,0 +1,2 @@
+# original
+VAR=1

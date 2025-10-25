@@ -1,0 +1,48 @@
+From 64b447afe7bc28157e1be6122bdf1ca360efea77 Mon Sep 17 00:00:00 2001
+From: Rick84444 <dickjacobsson022@gmail.com>
+Date: Thu, 23 Oct 2025 21:37:44 +0200
+Subject: [PATCH 2/3] chore: add .gitignore and remove local artifacts from git
+
+---
+ .gitignore | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+ create mode 100644 .gitignore
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..2c1e8e6
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,29 @@
++# Python
++__pycache__/
++*.py[cod]
++*$py.class
++
++# Virtual env
++venv/
++env/
++
++# Editor dirs
++.vscode/
++.idea/
++
++# OS
++.DS_Store
++
++# Test and build artifacts
++.pytest_cache/
++artifacts/
++*.sqlite3
++
++# Byte-compiled / optimized / DLL files
++*.pyc
++*.pyo
++
++# Distribution / packaging
++dist/
++build/
++__pypackages__/
+-- 
+2.51.1.windows.1
+
